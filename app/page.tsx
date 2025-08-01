@@ -1,6 +1,8 @@
 "use client"
 
-import React, { useState } from "react"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { createClient } from "@/supabase/helpers/client"
 import ContentManagement from "./components/ContentManagement"
 import ExperimentRanking from "./components/ExperimentRanking"
 import Header from "./components/Header"
@@ -8,39 +10,17 @@ import Sidebar from "./components/Sidebar"
 import TrendingFeeds from "./components/TrendingFeeds"
 
 export default function Home() {
+	const router = useRouter()
 	const [activeTab, setActiveTab] = useState("content")
-	const [isLoggedIn, setIsLoggedIn] = useState(false)
-	const [currentUser, setCurrentUser] = useState<{
+	const [currentUser] = useState<{
 		username: string
 		userId: string
 	} | null>(null)
-	const [loginLoading, setLoginLoading] = useState(false)
-	const [loginError, setLoginError] = useState("")
 
-	const handleLogin = async (username: string, password: string) => {
-		setLoginLoading(true)
-		setLoginError("")
-
-		// 模拟登录验证
-		setTimeout(() => {
-			if (username === "admin" && password === "admin123") {
-				setIsLoggedIn(true)
-				setCurrentUser({
-					username: username,
-					userId: "admin_001", // 示例用户ID
-				})
-				setLoginError("")
-			} else {
-				setLoginError("Invalid username or password")
-			}
-			setLoginLoading(false)
-		}, 1000)
-	}
-
-	const handleLogout = () => {
-		setIsLoggedIn(false)
-		setCurrentUser(null)
-		setActiveTab("content")
+	const handleLogout = async () => {
+		const client = createClient()
+		await client.auth.signOut()
+		router.push("/login")
 	}
 
 	// 登录后显示主界面

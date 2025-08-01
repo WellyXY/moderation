@@ -7,7 +7,6 @@ export async function middleware(request: NextRequest) {
 	const { response, supabase } = await updateSession(request)
 
 	const { data: session } = await supabase.auth.getSession()
-	console.log(session, "session")
 
 	if (
 		!session.session?.user &&
@@ -21,13 +20,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
 	matcher: [
-		/*
-		 * Match all request paths except for the ones starting with:
-		 * - _next/static (static files)
-		 * - _next/image (image optimization files)
-		 * - favicon.ico (favicon file)
-		 * Feel free to modify this pattern to include more paths.
-		 */
-		"/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+		"/((?!api/..*|_next/static|_next/image|favicon.ico|auth/callback|auth/redirect|auth/confirm|videos|images|robots|.well-known/apple-app-site-association).*)",
 	],
 }

@@ -59,7 +59,7 @@ export default function SignUpPage() {
 			supabase.auth.signInWithOAuth({
 				provider: "google",
 				options: {
-					redirectTo: `${document.location.origin}/api/auth/callback`,
+					redirectTo: `${document.location.origin}/auth/callback`,
 				},
 			})
 

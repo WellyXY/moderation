@@ -41,13 +41,11 @@ export default function LoginPage() {
 		setLoading(true)
 		setError("")
 
-		console.log("login with google")
-
 		try {
 			supabase.auth.signInWithOAuth({
 				provider: "google",
 				options: {
-					redirectTo: `${document.location.origin}/api/auth/callback`,
+					redirectTo: `${document.location.origin}/auth/callback`,
 				},
 			})
 
