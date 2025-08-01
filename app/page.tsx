@@ -1,11 +1,10 @@
 "use client"
 
 import React, { useState } from "react"
-import Login from "./components/Login"
-import Header from "./components/Header"
-import Sidebar from "./components/Sidebar"
 import ContentManagement from "./components/ContentManagement"
 import ExperimentRanking from "./components/ExperimentRanking"
+import Header from "./components/Header"
+import Sidebar from "./components/Sidebar"
 import TrendingFeeds from "./components/TrendingFeeds"
 
 export default function Home() {
@@ -42,17 +41,6 @@ export default function Home() {
 		setIsLoggedIn(false)
 		setCurrentUser(null)
 		setActiveTab("content")
-	}
-
-	// 如果未登录，显示登录页面
-	if (!isLoggedIn) {
-		return (
-			<Login
-				onLogin={handleLogin}
-				isLoading={loginLoading}
-				error={loginError}
-			/>
-		)
 	}
 
 	// 登录后显示主界面
