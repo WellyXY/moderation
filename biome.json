@@ -1,0 +1,105 @@
+{
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	},
+	"formatter": {
+		"enabled": true,
+		"formatWithErrors": false,
+		"lineEnding": "lf",
+		"indentStyle": "tab",
+		"indentWidth": 4,
+		"lineWidth": 80,
+		"attributePosition": "auto",
+		"includes": [
+			"**",
+			"!**/node_modules",
+			"!**/.next",
+			"!**/.vercel",
+			"!**/public",
+			"!**/dist",
+			"!**/.vscode",
+			"!**/pnpm-lock.yaml",
+			"!**/package-lock.json",
+			"!**/yarn.lock"
+		]
+	},
+	"assist": { "actions": { "source": { "organizeImports": "on" } } },
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"correctness": {
+				"useExhaustiveDependencies": {
+					"level": "error",
+					"options": {
+						"hooks": [
+							{
+								"name": "useHydrate",
+								"closureIndex": 0,
+								"dependenciesIndex": 1
+							},
+							{
+								"name": "useSubscribe",
+								"closureIndex": 0,
+								"dependenciesIndex": 1
+							}
+						]
+					}
+				}
+			},
+			"suspicious": {
+				"noArrayIndexKey": "off",
+				"noConfusingVoidType": "off"
+			},
+			"nursery": {
+				"useSortedClasses": {
+					"level": "error",
+					"fix": "safe",
+					"options": {
+						"attributes": ["className"],
+						"functions": [
+							"cn",
+							"twMerge",
+							"clsx",
+							"classNames",
+							"cva"
+						]
+					}
+				}
+			},
+			"style": {
+				"noNonNullAssertion": "off",
+				"noParameterAssign": "off",
+				"useAsConstAssertion": "error",
+				"useDefaultParameterLast": "error",
+				"useEnumInitializers": "error",
+				"useSelfClosingElements": "error",
+				"useSingleVarDeclarator": "error",
+				"noUnusedTemplateLiteral": "error",
+				"useNumberNamespace": "error",
+				"noInferrableTypes": "error",
+				"noUselessElse": "error"
+			},
+			"a11y": {
+				"noSvgWithoutTitle": "off",
+				"useKeyWithClickEvents": "off",
+				"useSemanticElements": "warn",
+				"noNoninteractiveElementToInteractiveRole": "warn",
+				"useMediaCaption": "off"
+			}
+		}
+	},
+	"javascript": {
+		"formatter": {
+			"quoteProperties": "asNeeded",
+			"trailingCommas": "all",
+			"semicolons": "asNeeded",
+			"arrowParentheses": "always",
+			"bracketSpacing": true,
+			"bracketSameLine": false,
+			"attributePosition": "auto"
+		}
+	}
+}
