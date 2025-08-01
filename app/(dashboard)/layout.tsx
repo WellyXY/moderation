@@ -13,13 +13,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     userId: "admin_001",
   };
 
-  const handleLogout = () => {
-    //TODO: ADD LOGOUT
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header currentUser={currentUser} onLogout={handleLogout} />
+      <Header currentUser={currentUser} />
       <div className="flex">
         <Sidebar />
         <main className="flex-1">{children}</main>

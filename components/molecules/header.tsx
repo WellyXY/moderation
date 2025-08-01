@@ -4,10 +4,13 @@ import React from "react";
 
 type HeaderProps = {
   currentUser: { username: string; userId: string } | null;
-  onLogout: () => void;
 };
 
-export function Header({ currentUser, onLogout }: HeaderProps) {
+export function Header({ currentUser }: HeaderProps) {
+  const handleLogout = () => {
+    //TODO: ADD LOGOUT
+  };
+
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -47,7 +50,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
               </span>
             </div>
             <button
-              onClick={onLogout}
+              onClick={handleLogout}
               className="ml-2 px-3 py-1 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
               title="Logout"
             >
