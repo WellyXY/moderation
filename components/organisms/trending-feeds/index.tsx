@@ -1,3 +1,4 @@
+"use client";
 import { useMemo, useState } from "react";
 import { Post } from "@/types";
 import { VideoCard } from "./components/video-card";
