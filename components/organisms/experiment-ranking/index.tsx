@@ -1,0 +1,1236 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { Post } from "@/types";
+import VideoCard from "./components/video-card";
+
+type ExperimentRankingProps = {
+  currentUserId?: string;
+};
+
+export function ExperimentRanking({ currentUserId }: ExperimentRankingProps) {
+  // 用户ID输入状态
+  const [inputUserId, setInputUserId] = useState(currentUserId || "");
+  const [appliedUserId, setAppliedUserId] = useState(currentUserId || "");
+
+  // 应用用户ID变更
+  const handleApplyUserId = () => {
+    setAppliedUserId(inputUserId);
+    // 这里可以添加其他逻辑，比如重新加载数据等
+    console.log("Applied User ID:", inputUserId);
+  };
+
+  // Feed算法参数 (输入状态)
+  const [feedParams, setFeedParams] = useState({
+    followingWeight: 40, // Following权重 (%)
+    recentWeight: 20, // Recent权重 (%)
+    forYouWeight: 40, // For You Trending权重 (%)
+    likeWeight: 1.0, // a: 点赞权重系数
+    commentWeight: 1.5, // b: 评论权重系数
+    remixWeight: 2.0, // c: Remix权重系数
+    watchWeight: 3.0, // d: 观看完成度权重系数
+    timeDecay: 0.8, // 时间衰减系数
+    likeThreshold: 1000, // T: like count阈值
+  });
+
+  // 已应用的算法参数 (实际生效状态)
+  const [appliedFeedParams, setAppliedFeedParams] = useState({
+    followingWeight: 40, // Following权重 (%)
+    recentWeight: 20, // Recent权重 (%)
+    forYouWeight: 40, // For You Trending权重 (%)
+    likeWeight: 1.0, // a: 点赞权重系数
+    commentWeight: 1.5, // b: 评论权重系数
+    remixWeight: 2.0, // c: Remix权重系数
+    watchWeight: 3.0, // d: 观看完成度权重系数
+    timeDecay: 0.8, // 时间衰减系数
+    likeThreshold: 1000, // T: like count阈值
+  });
+
+  // 内容标签过滤器 - All / Follow / For you / Recent
+  const [filterContentType, setFilterContentType] = useState("all");
+
+  // 视图切换状态 (grid / list)
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  // View Details 弹窗状态
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+
+  // 处理Boost/Deboost操作
+  const handleAction = (postId: string, action: "boost" | "deboost") => {
+    setMockFeedPosts((prev) =>
+      prev.map((post) => {
+        if (post.id === postId) {
+          if (action === "boost") {
+            return {
+              ...post,
+              isBoosted: true,
+              boostType: "feature" as const,
+              boostedAt: new Date(),
+              boostExpiry: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48小时后过期
+            };
+          } else {
+            return {
+              ...post,
+              isBoosted: false,
+              boostType: undefined,
+              boostedAt: undefined,
+              boostExpiry: undefined,
+            };
+          }
+        }
+        return post;
+      })
+    );
+  };
+
+  // 模拟测试Feed数据 - 只包含approved/blocked状态，没有pending和waiting_for_review
+  const [mockFeedPosts, setMockFeedPosts] = useState<Post[]>([
+    {
+      id: "feed_1",
+      userId: "user_001",
+      username: "trending_creator",
+      avatar: "👨‍🎨",
+      content: "New trending dance challenge!",
+      videoUrl:
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+      likes: 2340,
+      comments: 156,
+      remixes: 89,
+      watchPercentage: 92,
+      createdAt: new Date("2024-01-15T10:00:00"),
+      updatedAt: new Date("2024-01-15T10:00:00"),
+      boostedAt: new Date("2024-01-15T12:00:00"),
+      boostExpiry: new Date("2024-01-17T12:00:00"),
+      isBoosted: true,
+      boostType: "feature",
+      isBlocked: false,
+      tags: ["dance", "trending"],
+      status: "approved",
+      isNewUserFriendly: true,
+      difficulty: "easy",
+      jobId: "job_feed_001",
+      editLookId: "edit_feed_001",
+      videoPrompt: "Create an energetic dance video with trending music",
+    },
+    {
+      id: "feed_2",
+      userId: "user_002",
+      username: "music_lover",
+      avatar: "🎵",
+      content: "Easy guitar tutorial for beginners",
+      videoUrl:
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+      likes: 1890,
+      comments: 234,
+      remixes: 45,
+      watchPercentage: 88,
+      createdAt: new Date("2024-01-15T09:00:00"),
+      updatedAt: new Date("2024-01-15T09:00:00"),
+      isBoosted: false,
+      isBlocked: false,
+      tags: ["music", "tutorial"],
+      status: "approved",
+      isNewUserFriendly: true,
+      difficulty: "easy",
+      jobId: "job_feed_002",
+      editLookId: "edit_feed_002",
+      videoPrompt: "Create a beginner-friendly guitar tutorial video",
+    },
+    {
+      id: "feed_3",
+      userId: "user_003",
+      username: "food_explorer",
+      avatar: "🍳",
+      content: "Quick 5-minute breakfast recipe",
+      videoUrl:
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+      likes: 1567,
+      comments: 89,
+      remixes: 67,
+      watchPercentage: 95,
+      createdAt: new Date("2024-01-15T08:00:00"),
+      updatedAt: new Date("2024-01-15T08:00:00"),
+      isBoosted: false,
+      isBlocked: false,
+      tags: ["cooking", "quick"],
+      status: "approved",
+      isNewUserFriendly: true,
+      difficulty: "easy",
+      jobId: "job_feed_003",
+      editLookId: "edit_feed_003",
+      videoPrompt: "Create a quick and easy breakfast cooking video",
+    },
+    {
+      id: "feed_4",
+      userId: "user_004",
+      username: "art_creator",
+      avatar: "🎨",
+      content: "Digital art speed painting",
+      videoUrl:
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+      likes: 2156,
+      comments: 178,
+      remixes: 92,
+      watchPercentage: 87,
+      createdAt: new Date("2024-01-15T07:00:00"),
+      updatedAt: new Date("2024-01-15T07:00:00"),
+      isBoosted: false,
+      isBlocked: false,
+      tags: ["art", "digital"],
+      status: "approved",
+      isNewUserFriendly: true,
+      difficulty: "medium",
+      jobId: "job_feed_004",
+      editLookId: "edit_feed_004",
+      videoPrompt: "Create a mesmerizing digital art speed painting video",
+    },
+    {
+      id: "feed_5",
+      userId: "user_005",
+      username: "fitness_coach",
+      avatar: "💪",
+      content: "Beginner home workout routine",
+      videoUrl:
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+      likes: 1823,
+      comments: 145,
+      remixes: 38,
+      watchPercentage: 91,
+      createdAt: new Date("2024-01-15T06:00:00"),
+      updatedAt: new Date("2024-01-15T06:00:00"),
+      isBoosted: false,
+      isBlocked: false,
+      tags: ["fitness", "beginner"],
+      status: "approved",
+      isNewUserFriendly: true,
+      difficulty: "easy",
+      jobId: "job_feed_005",
+      editLookId: "edit_feed_005",
+      videoPrompt: "Create an encouraging beginner fitness workout video",
+    },
+    {
+      id: "feed_6",
+      userId: "user_006",
+      username: "tech_reviewer",
+      avatar: "📱",
+      content: "Latest smartphone comparison",
+      videoUrl:
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+      likes: 1945,
+      comments: 267,
+      remixes: 23,
+      watchPercentage: 84,
+      createdAt: new Date("2024-01-15T05:00:00"),
+      updatedAt: new Date("2024-01-15T05:00:00"),
+      isBoosted: false,
+      isBlocked: false,
+      tags: ["tech", "review"],
+      status: "approved",
+      isNewUserFriendly: true,
+      difficulty: "medium",
+      jobId: "job_feed_006",
+      editLookId: "edit_feed_006",
+      videoPrompt: "Create an informative smartphone comparison video",
+    },
+    {
+      id: "feed_7",
+      userId: "user_007",
+      username: "travel_guide",
+      avatar: "🗺️",
+      content: "Hidden gems in Tokyo for budget travelers",
+      videoUrl:
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
+      likes: 1234,
+      comments: 95,
+      remixes: 56,
+      watchPercentage: 89,
+      createdAt: new Date("2024-01-15T04:00:00"),
+      updatedAt: new Date("2024-01-15T04:00:00"),
+      isBoosted: true,
+      boostType: "good",
+      boostedAt: new Date("2024-01-15T11:00:00"),
+      boostExpiry: new Date("2024-01-17T11:00:00"),
+      isBlocked: false,
+      tags: ["travel", "budget"],
+      status: "approved",
+      isNewUserFriendly: true,
+      difficulty: "easy",
+      jobId: "job_feed_007",
+      editLookId: "edit_feed_007",
+      videoPrompt: "Create a travel guide for budget-conscious travelers",
+    },
+    {
+      id: "feed_8",
+      userId: "user_008",
+      username: "comedy_king",
+      avatar: "😂",
+      content: "Funny pet compilation",
+      videoUrl:
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+      likes: 3456,
+      comments: 234,
+      remixes: 123,
+      watchPercentage: 96,
+      createdAt: new Date("2024-01-15T03:00:00"),
+      updatedAt: new Date("2024-01-15T03:00:00"),
+      isBoosted: false,
+      isBlocked: false,
+      tags: ["funny", "pets"],
+      status: "approved",
+      isNewUserFriendly: true,
+      difficulty: "easy",
+      jobId: "job_feed_008",
+      editLookId: "edit_feed_008",
+      videoPrompt: "Create a compilation of funny pet moments",
+    },
+    {
+      id: "feed_9",
+      userId: "user_009",
+      username: "science_nerd",
+      avatar: "🔬",
+      content: "Mind-blowing physics experiments",
+      videoUrl:
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+      likes: 1876,
+      comments: 156,
+      remixes: 78,
+      watchPercentage: 82,
+      createdAt: new Date("2024-01-15T02:00:00"),
+      updatedAt: new Date("2024-01-15T02:00:00"),
+      isBoosted: false,
+      isBlocked: false,
+      tags: ["science", "physics"],
+      status: "approved",
+      isNewUserFriendly: false,
+      difficulty: "hard",
+      jobId: "job_feed_009",
+      editLookId: "edit_feed_009",
+      videoPrompt: "Create educational physics experiment demonstrations",
+    },
+    {
+      id: "feed_10",
+      userId: "user_010",
+      username: "nature_lover",
+      avatar: "🌿",
+      content: "Peaceful forest sounds for meditation",
+      videoUrl:
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/VolkswagenGTIReview.mp4",
+      likes: 998,
+      comments: 67,
+      remixes: 34,
+      watchPercentage: 93,
+      createdAt: new Date("2024-01-15T01:00:00"),
+      updatedAt: new Date("2024-01-15T01:00:00"),
+      isBoosted: false,
+      isBlocked: false,
+      tags: ["nature", "meditation"],
+      status: "approved",
+      isNewUserFriendly: true,
+      difficulty: "easy",
+      jobId: "job_feed_010",
+      editLookId: "edit_feed_010",
+      videoPrompt: "Create a relaxing nature meditation video",
+    },
+    {
+      id: "feed_11",
+      userId: "user_011",
+      username: "fashion_guru",
+      avatar: "👗",
+      content: "Sustainable fashion tips for beginners",
+      videoUrl:
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WhatCarCanYouGetForAGrand.mp4",
+      likes: 1456,
+      comments: 89,
+      remixes: 45,
+      watchPercentage: 86,
+      createdAt: new Date("2024-01-14T23:00:00"),
+      updatedAt: new Date("2024-01-14T23:00:00"),
+      isBoosted: false,
+      isBlocked: false,
+      tags: ["fashion", "sustainable"],
+      status: "approved",
+      isNewUserFriendly: true,
+      difficulty: "easy",
+      jobId: "job_feed_011",
+      editLookId: "edit_feed_011",
+      videoPrompt: "Create a sustainable fashion guide for beginners",
+    },
+    {
+      id: "feed_12",
+      userId: "user_012",
+      username: "gaming_pro",
+      avatar: "🎮",
+      content: "Epic gaming highlights compilation",
+      videoUrl:
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+      likes: 2789,
+      comments: 345,
+      remixes: 167,
+      watchPercentage: 94,
+      createdAt: new Date("2024-01-14T22:00:00"),
+      updatedAt: new Date("2024-01-14T22:00:00"),
+      isBoosted: false,
+      isBlocked: false,
+      tags: ["gaming", "highlights"],
+      status: "approved",
+      isNewUserFriendly: true,
+      difficulty: "medium",
+      jobId: "job_feed_012",
+      editLookId: "edit_feed_012",
+      videoPrompt: "Create an exciting gaming highlights compilation",
+    },
+    {
+      id: "feed_13",
+      userId: "user_013",
+      username: "book_worm",
+      avatar: "📚",
+      content: "Must-read books of 2024",
+      videoUrl:
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+      likes: 876,
+      comments: 123,
+      remixes: 29,
+      watchPercentage: 78,
+      createdAt: new Date("2024-01-14T21:00:00"),
+      updatedAt: new Date("2024-01-14T21:00:00"),
+      isBoosted: false,
+      isBlocked: false,
+      tags: ["books", "reading"],
+      status: "approved",
+      isNewUserFriendly: true,
+      difficulty: "easy",
+      jobId: "job_feed_013",
+      editLookId: "edit_feed_013",
+      videoPrompt: "Create a book recommendation video for 2024",
+    },
+    {
+      id: "feed_14",
+      userId: "user_014",
+      username: "plant_parent",
+      avatar: "🌱",
+      content: "Indoor plant care for beginners",
+      videoUrl:
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+      likes: 1234,
+      comments: 98,
+      remixes: 56,
+      watchPercentage: 91,
+      createdAt: new Date("2024-01-14T20:00:00"),
+      updatedAt: new Date("2024-01-14T20:00:00"),
+      isBoosted: false,
+      isBlocked: false,
+      tags: ["plants", "care"],
+      status: "approved",
+      isNewUserFriendly: true,
+      difficulty: "easy",
+      jobId: "job_feed_014",
+      editLookId: "edit_feed_014",
+      videoPrompt: "Create a beginner guide for indoor plant care",
+    },
+    {
+      id: "feed_15",
+      userId: "user_015",
+      username: "crypto_trader",
+      avatar: "💰",
+      content: "Cryptocurrency basics explained",
+      videoUrl:
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+      likes: 1567,
+      comments: 234,
+      remixes: 89,
+      watchPercentage: 85,
+      createdAt: new Date("2024-01-14T19:00:00"),
+      updatedAt: new Date("2024-01-14T19:00:00"),
+      isBoosted: false,
+      isBlocked: false,
+      tags: ["crypto", "finance"],
+      status: "approved",
+      isNewUserFriendly: false,
+      difficulty: "medium",
+      jobId: "job_feed_015",
+      editLookId: "edit_feed_015",
+      videoPrompt: "Create an educational video about cryptocurrency basics",
+    },
+    {
+      id: "feed_16",
+      userId: "user_016",
+      username: "movie_critic",
+      avatar: "🎬",
+      content: "Best movies to watch this weekend",
+      videoUrl:
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+      likes: 2134,
+      comments: 187,
+      remixes: 78,
+      watchPercentage: 88,
+      createdAt: new Date("2024-01-14T18:00:00"),
+      updatedAt: new Date("2024-01-14T18:00:00"),
+      isBoosted: false,
+      isBlocked: false,
+      tags: ["movies", "reviews"],
+      status: "approved",
+      isNewUserFriendly: true,
+      difficulty: "easy",
+      jobId: "job_feed_016",
+      editLookId: "edit_feed_016",
+      videoPrompt: "Create movie recommendations for weekend viewing",
+    },
+    {
+      id: "feed_17",
+      userId: "user_017",
+      username: "diy_master",
+      avatar: "🔨",
+      content: "DIY home improvement on a budget",
+      videoUrl:
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+      likes: 1789,
+      comments: 145,
+      remixes: 67,
+      watchPercentage: 92,
+      createdAt: new Date("2024-01-14T17:00:00"),
+      updatedAt: new Date("2024-01-14T17:00:00"),
+      isBoosted: false,
+      isBlocked: false,
+      tags: ["diy", "home"],
+      status: "approved",
+      isNewUserFriendly: true,
+      difficulty: "medium",
+      jobId: "job_feed_017",
+      editLookId: "edit_feed_017",
+      videoPrompt: "Create a budget-friendly DIY home improvement guide",
+    },
+    {
+      id: "feed_18",
+      userId: "user_018",
+      username: "language_learner",
+      avatar: "🗣️",
+      content: "Learn Spanish in 10 minutes",
+      videoUrl:
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
+      likes: 1345,
+      comments: 123,
+      remixes: 45,
+      watchPercentage: 87,
+      createdAt: new Date("2024-01-14T16:00:00"),
+      updatedAt: new Date("2024-01-14T16:00:00"),
+      isBoosted: false,
+      isBlocked: false,
+      tags: ["language", "education"],
+      status: "approved",
+      isNewUserFriendly: true,
+      difficulty: "easy",
+      jobId: "job_feed_018",
+      editLookId: "edit_feed_018",
+      videoPrompt: "Create a quick Spanish language learning video",
+    },
+    {
+      id: "feed_19",
+      userId: "user_019",
+      username: "health_coach",
+      avatar: "🏥",
+      content: "Mental health tips for stress relief",
+      videoUrl:
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+      likes: 2456,
+      comments: 234,
+      remixes: 89,
+      watchPercentage: 95,
+      createdAt: new Date("2024-01-14T15:00:00"),
+      updatedAt: new Date("2024-01-14T15:00:00"),
+      isBoosted: false,
+      isBlocked: false,
+      tags: ["health", "mental"],
+      status: "approved",
+      isNewUserFriendly: true,
+      difficulty: "easy",
+      jobId: "job_feed_019",
+      editLookId: "edit_feed_019",
+      videoPrompt: "Create mental health and stress relief tips",
+    },
+    {
+      id: "feed_20",
+      userId: "user_020",
+      username: "space_explorer",
+      avatar: "🚀",
+      content: "Amazing facts about the universe",
+      videoUrl:
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+      likes: 1998,
+      comments: 167,
+      remixes: 78,
+      watchPercentage: 90,
+      createdAt: new Date("2024-01-14T14:00:00"),
+      updatedAt: new Date("2024-01-14T14:00:00"),
+      isBoosted: false,
+      isBlocked: false,
+      tags: ["space", "science"],
+      status: "approved",
+      isNewUserFriendly: true,
+      difficulty: "medium",
+      jobId: "job_feed_020",
+      editLookId: "edit_feed_020",
+      videoPrompt: "Create fascinating space and universe facts video",
+    },
+  ]);
+
+  // 根据内容类型过滤 - All / Follow / For You / Recent
+  const filteredByContentType = useMemo(() => {
+    return mockFeedPosts.filter((post) => {
+      switch (filterContentType) {
+        case "follow":
+          // Follow: 模拟关注的用户内容
+          return [
+            "user_001",
+            "user_002",
+            "user_003",
+            "user_004",
+            "user_005",
+          ].includes(post.userId);
+        case "for_you":
+          // For You: 包含所有推荐内容（boosted + high engagement）
+          return post.isBoosted || post.likes > 1000;
+        case "recent":
+          // Recent: 最近的内容 (最近24小时)
+          const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+          return post.createdAt.getTime() > dayAgo;
+        case "all":
+          return true;
+        default:
+          return true;
+      }
+    });
+  }, [filterContentType]);
+
+  // 根据Feed算法参数计算排序后的内容
+  const rankedPosts = useMemo(() => {
+    return [...filteredByContentType].sort((a, b) => {
+      // Feed算法评分计算: (a×like + b×comment + c×remix + d×watch%) × time_decay + (like_count > T)
+      const calculateScore = (post: Post) => {
+        // 基础参与度评分 (a×like + b×comment + c×remix + d×watch%)
+        const engagementScore =
+          appliedFeedParams.likeWeight * post.likes +
+          appliedFeedParams.commentWeight * post.comments +
+          appliedFeedParams.remixWeight * post.remixes +
+          appliedFeedParams.watchWeight * post.watchPercentage;
+
+        // 时间衰减
+        const hoursOld =
+          (Date.now() - post.createdAt.getTime()) / (1000 * 60 * 60);
+        const timeDecayFactor = Math.pow(
+          appliedFeedParams.timeDecay,
+          hoursOld / 24
+        );
+
+        // Like count > T 加分
+        const thresholdBonus =
+          post.likes > appliedFeedParams.likeThreshold ? 500 : 0;
+
+        // Boost加分
+        const boostBonus = post.isBoosted ? 1000 : 0;
+
+        return engagementScore * timeDecayFactor + thresholdBonus + boostBonus;
+      };
+
+      return calculateScore(b) - calculateScore(a); // 从高到低排序
+    });
+  }, [filteredByContentType, appliedFeedParams]);
+
+  // 应用参数变更
+  const handleApplyParams = () => {
+    setAppliedFeedParams({ ...feedParams });
+  };
+
+  // 重置参数到默认值
+  const handleResetParams = () => {
+    const defaultParams = {
+      followingWeight: 40,
+      recentWeight: 20,
+      forYouWeight: 40,
+      likeWeight: 1.0,
+      commentWeight: 1.5,
+      remixWeight: 2.0,
+      watchWeight: 3.0,
+      timeDecay: 0.8,
+      likeThreshold: 1000,
+    };
+    setFeedParams(defaultParams);
+    setAppliedFeedParams(defaultParams);
+  };
+
+  return (
+    <div className="p-6">
+      {/* 页面标题 */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">For You</h2>
+        <p className="text-gray-600">
+          Personalized content feed with algorithm optimization
+        </p>
+      </div>
+
+      {/* User Configuration */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          User Configuration
+        </h3>
+        <div className="flex items-end gap-4">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Target User ID
+            </label>
+            <input
+              type="text"
+              value={inputUserId}
+              onChange={(e) => setInputUserId(e.target.value)}
+              placeholder="Enter user ID to test"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <button
+              onClick={handleApplyUserId}
+              disabled={!inputUserId.trim()}
+              className="px-6 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+            >
+              Apply User
+            </button>
+          </div>
+        </div>
+        {appliedUserId && appliedUserId !== currentUserId && (
+          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-sm text-green-700">
+              <span className="font-medium">Applied User:</span> {appliedUserId}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Feed参数调整面板 */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Feed Algorithm Parameters
+        </h3>
+        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+          <p className="text-sm text-gray-700 font-mono">
+            Formula:{" "}
+            <span className="font-bold">
+              (a×like + b×comment + c×remix + d×watch%) × time_decay +
+              (like_count &gt; T)
+            </span>
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {/* a - Like Weight */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              a (Like Weight)
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              value={feedParams.likeWeight}
+              onChange={(e) =>
+                setFeedParams((prev) => ({
+                  ...prev,
+                  likeWeight: parseFloat(e.target.value) || 0,
+                }))
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            />
+          </div>
+
+          {/* b - Comment Weight */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              b (Comment Weight)
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              value={feedParams.commentWeight}
+              onChange={(e) =>
+                setFeedParams((prev) => ({
+                  ...prev,
+                  commentWeight: parseFloat(e.target.value) || 0,
+                }))
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            />
+          </div>
+
+          {/* c - Remix Weight */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              c (Remix Weight)
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              value={feedParams.remixWeight}
+              onChange={(e) =>
+                setFeedParams((prev) => ({
+                  ...prev,
+                  remixWeight: parseFloat(e.target.value) || 0,
+                }))
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            />
+          </div>
+
+          {/* d - Watch Weight */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              d (Watch % Weight)
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              value={feedParams.watchWeight}
+              onChange={(e) =>
+                setFeedParams((prev) => ({
+                  ...prev,
+                  watchWeight: parseFloat(e.target.value) || 0,
+                }))
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            />
+          </div>
+
+          {/* Time Decay */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Time Decay
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              max="1"
+              value={feedParams.timeDecay}
+              onChange={(e) =>
+                setFeedParams((prev) => ({
+                  ...prev,
+                  timeDecay: parseFloat(e.target.value) || 0,
+                }))
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            />
+          </div>
+
+          {/* T - Like Threshold */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              T (Like Threshold)
+            </label>
+            <input
+              type="number"
+              step="100"
+              value={feedParams.likeThreshold}
+              onChange={(e) =>
+                setFeedParams((prev) => ({
+                  ...prev,
+                  likeThreshold: parseInt(e.target.value) || 0,
+                }))
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 flex gap-3">
+          <button
+            onClick={handleApplyParams}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+          >
+            Apply Parameters
+          </button>
+          <button
+            onClick={handleResetParams}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+          >
+            Reset to Default
+          </button>
+          <div className="text-sm text-gray-600 flex items-center">
+            <span className="mr-2">⚙️</span>
+            Click Apply to update feed with new parameters
+          </div>
+        </div>
+      </div>
+
+      {/* 内容显示区域 */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">
+            For You Feed ({rankedPosts.length})
+          </h3>
+          <div className="flex items-center gap-3">
+            {/* Content Tag Filter */}
+            <select
+              value={filterContentType}
+              onChange={(e) => setFilterContentType(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
+            >
+              <option value="all">All</option>
+              <option value="follow">Follow</option>
+              <option value="for_you">For You</option>
+              <option value="recent">Recent</option>
+            </select>
+
+            {/* View Toggle */}
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                  viewMode === "grid"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                📱 Grid
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                  viewMode === "list"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                📊 List
+              </button>
+            </div>
+
+            <div className="text-sm text-gray-600 bg-orange-50 px-3 py-1 rounded-full">
+              🧪 For You Feed
+            </div>
+          </div>
+        </div>
+
+        {/* View Content - Grid or List */}
+        {viewMode === "grid" ? (
+          /* TV Wall Grid Layout */
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+            {rankedPosts.map((post: Post, index) => (
+              <VideoCard
+                key={post.id}
+                post={post}
+                index={index}
+                onSelectPost={setSelectedPost}
+                onAction={handleAction}
+                filterType={filterContentType}
+              />
+            ))}
+          </div>
+        ) : (
+          /* List View - Algorithm Data Table */
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse border border-gray-200 text-xs">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="border border-gray-200 px-2 py-1 text-left font-medium">
+                    Rank
+                  </th>
+                  <th className="border border-gray-200 px-2 py-1 text-left font-medium">
+                    Video
+                  </th>
+                  <th className="border border-gray-200 px-2 py-1 text-left font-medium">
+                    Post ID
+                  </th>
+                  <th className="border border-gray-200 px-2 py-1 text-left font-medium">
+                    Final Score
+                  </th>
+                  <th className="border border-gray-200 px-2 py-1 text-left font-medium">
+                    Likes
+                  </th>
+                  <th className="border border-gray-200 px-2 py-1 text-left font-medium">
+                    Like Rate
+                  </th>
+                  <th className="border border-gray-200 px-2 py-1 text-left font-medium">
+                    Comments
+                  </th>
+                  <th className="border border-gray-200 px-2 py-1 text-left font-medium">
+                    Comment Rate
+                  </th>
+                  <th className="border border-gray-200 px-2 py-1 text-left font-medium">
+                    Remixes
+                  </th>
+                  <th className="border border-gray-200 px-2 py-1 text-left font-medium">
+                    Remix Rate
+                  </th>
+                  <th className="border border-gray-200 px-2 py-1 text-left font-medium">
+                    Watch %
+                  </th>
+                  <th className="border border-gray-200 px-2 py-1 text-left font-medium">
+                    Hours Since
+                  </th>
+                  <th className="border border-gray-200 px-2 py-1 text-left font-medium">
+                    Decay Factor
+                  </th>
+                  <th className="border border-gray-200 px-2 py-1 text-left font-medium">
+                    Status
+                  </th>
+                  <th className="border border-gray-200 px-2 py-1 text-left font-medium">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {rankedPosts.map((post, index) => {
+                  // 模拟算法数据 (基于table.html的字段)
+                  const hoursSince =
+                    (Date.now() - post.createdAt.getTime()) / (1000 * 60 * 60);
+                  const decayFactor = Math.pow(0.8, hoursSince / 24);
+                  const likeRate =
+                    post.likes /
+                    (post.likes + post.comments + post.remixes + 100); // 模拟计算
+                  const commentRate =
+                    post.comments /
+                    (post.likes + post.comments + post.remixes + 100);
+                  const remixRate =
+                    post.remixes /
+                    (post.likes + post.comments + post.remixes + 100);
+                  const finalScore =
+                    (1.0 * post.likes +
+                      1.5 * post.comments +
+                      2.0 * post.remixes +
+                      3.0 * post.watchPercentage) *
+                      decayFactor +
+                    (post.isBoosted ? 1000 : 0);
+
+                  return (
+                    <tr key={post.id} className="hover:bg-gray-50">
+                      <td className="border border-gray-200 px-2 py-1 font-medium">
+                        #{index + 1}
+                      </td>
+                      <td className="border border-gray-200 px-2 py-1">
+                        <div className="flex items-center space-x-3">
+                          <video
+                            src={post.videoUrl}
+                            className="w-60 h-96 object-cover rounded bg-gray-100"
+                            muted
+                            playsInline
+                            autoPlay
+                            loop
+                          />
+                          <div>
+                            <div className="font-medium line-clamp-1">
+                              {post.username}
+                            </div>
+                            <div className="text-gray-500 line-clamp-1">
+                              {post.content}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="border border-gray-200 px-2 py-1 font-mono">
+                        {post.id.slice(0, 8)}...
+                      </td>
+                      <td className="border border-gray-200 px-2 py-1 font-mono">
+                        {finalScore.toFixed(2)}
+                      </td>
+                      <td className="border border-gray-200 px-2 py-1">
+                        {post.likes.toLocaleString()}
+                      </td>
+                      <td className="border border-gray-200 px-2 py-1">
+                        {(likeRate * 100).toFixed(1)}%
+                      </td>
+                      <td className="border border-gray-200 px-2 py-1">
+                        {post.comments}
+                      </td>
+                      <td className="border border-gray-200 px-2 py-1">
+                        {(commentRate * 100).toFixed(1)}%
+                      </td>
+                      <td className="border border-gray-200 px-2 py-1">
+                        {post.remixes}
+                      </td>
+                      <td className="border border-gray-200 px-2 py-1">
+                        {(remixRate * 100).toFixed(1)}%
+                      </td>
+                      <td className="border border-gray-200 px-2 py-1">
+                        {post.watchPercentage}%
+                      </td>
+                      <td className="border border-gray-200 px-2 py-1">
+                        {hoursSince.toFixed(1)}h
+                      </td>
+                      <td className="border border-gray-200 px-2 py-1">
+                        {decayFactor.toFixed(3)}
+                      </td>
+                      <td className="border border-gray-200 px-2 py-1">
+                        <div className="flex flex-wrap gap-1">
+                          {post.isBoosted ? (
+                            <span className="bg-purple-100 text-purple-800 px-1 py-0.5 rounded text-xs">
+                              🚀 Boost
+                            </span>
+                          ) : (
+                            <span className="bg-gray-100 text-gray-800 px-1 py-0.5 rounded text-xs">
+                              📄 Normal
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="border border-gray-200 px-2 py-1">
+                        <button
+                          onClick={() => setSelectedPost(post)}
+                          className="text-blue-600 hover:text-blue-800 text-xs"
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Detail Modal */}
+      {selectedPost && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setSelectedPost(null)}
+        >
+          <div
+            className="bg-white rounded-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Content Details</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Content
+                  </label>
+                  <p className="text-gray-900">{selectedPost.content}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    User
+                  </label>
+                  <p className="text-gray-900">
+                    {selectedPost.username} ({selectedPost.userId})
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
+                  <div>{selectedPost.status}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Technical Details
+                  </label>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>Job ID: {selectedPost.jobId}</div>
+                    <div>Post ID: {selectedPost.id}</div>
+                    <div>Edit Look ID: {selectedPost.editLookId}</div>
+                    <div>User ID: {selectedPost.userId}</div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Video Prompt
+                  </label>
+                  <p className="text-gray-900 text-sm bg-gray-50 p-3 rounded-lg">
+                    {selectedPost.videoPrompt}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Metrics
+                  </label>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>Likes: {selectedPost.likes}</div>
+                    <div>Comments: {selectedPost.comments}</div>
+                    <div>Remixes: {selectedPost.remixes}</div>
+                    <div>Watch Rate: {selectedPost.watchPercentage}%</div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Algorithm Parameters
+                  </label>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    {(() => {
+                      // 计算算法参数 (与List View一致)
+                      const engagementScore =
+                        appliedFeedParams.likeWeight * selectedPost.likes +
+                        appliedFeedParams.commentWeight *
+                          selectedPost.comments +
+                        appliedFeedParams.remixWeight * selectedPost.remixes +
+                        appliedFeedParams.watchWeight *
+                          selectedPost.watchPercentage;
+                      const hoursSince =
+                        (Date.now() - selectedPost.createdAt.getTime()) /
+                        (1000 * 60 * 60);
+                      const timeDecayFactor = Math.pow(
+                        appliedFeedParams.timeDecay,
+                        hoursSince / 24
+                      );
+                      const thresholdBonus =
+                        selectedPost.likes > appliedFeedParams.likeThreshold
+                          ? 500
+                          : 0;
+                      const boostBonus = selectedPost.isBoosted ? 1000 : 0;
+                      const finalScore =
+                        engagementScore * timeDecayFactor +
+                        thresholdBonus +
+                        boostBonus;
+
+                      const likeRate =
+                        selectedPost.likes /
+                        (selectedPost.likes +
+                          selectedPost.comments +
+                          selectedPost.remixes +
+                          100);
+                      const commentRate =
+                        selectedPost.comments /
+                        (selectedPost.likes +
+                          selectedPost.comments +
+                          selectedPost.remixes +
+                          100);
+                      const remixRate =
+                        selectedPost.remixes /
+                        (selectedPost.likes +
+                          selectedPost.comments +
+                          selectedPost.remixes +
+                          100);
+
+                      return (
+                        <>
+                          <div>Final Score: {finalScore.toFixed(2)}</div>
+                          <div>Hours Since: {hoursSince.toFixed(1)}h</div>
+                          <div>Like Rate: {(likeRate * 100).toFixed(1)}%</div>
+                          <div>
+                            Comment Rate: {(commentRate * 100).toFixed(1)}%
+                          </div>
+                          <div>Remix Rate: {(remixRate * 100).toFixed(1)}%</div>
+                          <div>Decay Factor: {timeDecayFactor.toFixed(3)}</div>
+                          <div>
+                            Engagement Score: {engagementScore.toFixed(2)}
+                          </div>
+                          <div>Threshold Bonus: {thresholdBonus}</div>
+                          <div>Boost Bonus: {boostBonus}</div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setSelectedPost(null)}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
