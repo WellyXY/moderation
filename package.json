@@ -4,8 +4,8 @@
 	"description": "内容审核与推荐算法管理后台",
 	"private": true,
 	"scripts": {
-		"dev": "next dev",
-		"build": "next build",
+		"dev": "next dev --turbopack",
+		"build": "next build --turbopack",
 		"start": "next start",
 		"update-types": "supabase gen types typescript --project-id \"fuazrjersikhwcqfujtg\" > types/supabase.ts",
 		"lint": "next lint",
@@ -24,6 +24,7 @@
 		"@types/react": "^19.1.9",
 		"@types/react-dom": "^19.1.7",
 		"autoprefixer": "^10.4.21",
+		"babel-plugin-react-compiler": "19.1.0-rc.2",
 		"clsx": "^2.1.1",
 		"date-fns": "^4.1.0",
 		"lucide-react": "^0.535.0",

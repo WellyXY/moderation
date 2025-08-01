@@ -37,12 +37,14 @@ export default function LoginPage() {
 		}
 	}
 
-	const handleGoogleLogin = async () => {
+	const handleGoogleLogin = () => {
 		setLoading(true)
 		setError("")
 
+		console.log("login with google")
+
 		try {
-			const { error } = await supabase.auth.signInWithOAuth({
+			supabase.auth.signInWithOAuth({
 				provider: "google",
 				options: {
 					redirectTo: `${document.location.origin}/api/auth/callback`,
@@ -50,7 +52,6 @@ export default function LoginPage() {
 			})
 
 			if (error) {
-				setError(error.message)
 				setLoading(false)
 			}
 		} catch {
