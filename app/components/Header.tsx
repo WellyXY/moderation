@@ -13,7 +13,7 @@ export default function Header({ currentUser, onLogout }: HeaderProps) {
 			<div className="flex items-center justify-between">
 				<div className="flex items-center space-x-4">
 					<div className="flex items-center space-x-3">
-						<div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+						<div className="w-8 h-8 bg-linear-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
 							<span className="text-white text-lg font-bold">
 								🛡️
 							</span>

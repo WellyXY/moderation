@@ -89,7 +89,7 @@ input[type="date"]:lang(zh-TW)::-webkit-datetime-edit-text {
 /* Custom utility classes */
 @layer utilities {
 	.btn-primary {
-		@apply text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium;
+		@apply text-white px-4 py-2 rounded-lg transition-colors font-medium;
 	}
 
 	.btn-secondary {
@@ -101,7 +101,7 @@ input[type="date"]:lang(zh-TW)::-webkit-datetime-edit-text {
 	}
 
 	.input-field {
-		@apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none;
+		@apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent outline-none;
 	}
 
 	.line-clamp-1 {
@@ -109,6 +109,7 @@ input[type="date"]:lang(zh-TW)::-webkit-datetime-edit-text {
 		display: -webkit-box;
 		-webkit-box-orient: vertical;
 		-webkit-line-clamp: 1;
+		line-clamp: 1;
 	}
 
 	.line-clamp-2 {
@@ -116,6 +117,7 @@ input[type="date"]:lang(zh-TW)::-webkit-datetime-edit-text {
 		display: -webkit-box;
 		-webkit-box-orient: vertical;
 		-webkit-line-clamp: 2;
+		line-clamp: 2;
 	}
 
 	.line-clamp-3 {
@@ -123,6 +125,7 @@ input[type="date"]:lang(zh-TW)::-webkit-datetime-edit-text {
 		display: -webkit-box;
 		-webkit-box-orient: vertical;
 		-webkit-line-clamp: 3;
+		line-clamp: 3;
 	}
 }
 

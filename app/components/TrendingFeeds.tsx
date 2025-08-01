@@ -1442,7 +1442,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
 		<div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
 			{/* Video Player Area - 9:16 aspect ratio */}
 			<div
-				className="aspect-[9/16] bg-gray-900 relative"
+				className="aspect-9/16 bg-gray-900 relative"
 				onMouseEnter={handleMouseEnter}
 				onMouseLeave={handleMouseLeave}
 			>
